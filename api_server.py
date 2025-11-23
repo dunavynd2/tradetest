@@ -10,6 +10,8 @@ import logging
 from datetime import datetime
 from dotenv import load_dotenv
 from alpaca.trading.client import TradingClient
+from alpaca.trading.requests import MarketOrderRequest
+from alpaca.trading.enums import OrderSide, TimeInForce
 from load_model import load_model
 
 # Load environment variables
@@ -164,9 +166,6 @@ def manual_trade():
         symbol = data.get('symbol', 'AMZN')
         side = data.get('side', 'buy').upper()
         qty = data.get('qty', 1)
-        
-        from alpaca.trading.requests import MarketOrderRequest
-        from alpaca.trading.enums import OrderSide, TimeInForce
         
         order_side = OrderSide.BUY if side == 'BUY' else OrderSide.SELL
         order_request = MarketOrderRequest(

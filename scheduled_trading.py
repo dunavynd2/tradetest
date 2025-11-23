@@ -6,8 +6,7 @@ import os
 import time
 import logging
 import schedule
-import datetime
-from datetime import datetime as dt
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest
@@ -54,8 +53,8 @@ def fetch_latest_data():
         request_params = StockBarsRequest(
             symbol_or_symbols=[TRADING_SYMBOL],
             timeframe=TimeFrame.Minute,
-            start=dt.now() - datetime.timedelta(minutes=15),
-            end=dt.now()
+            start=datetime.now() - timedelta(minutes=15),
+            end=datetime.now()
         )
         bars = data_client.get_stock_bars(request_params).df
         bars = bars[bars['symbol'] == TRADING_SYMBOL]
@@ -100,7 +99,7 @@ def check_position_risk(current_position):
 def trade():
     """Execute trading logic based on model predictions."""
     try:
-        logger.info(f"Running trading logic at {dt.now()}")
+        logger.info(f"Running trading logic at {datetime.now()}")
         
         # Fetch latest data
         latest = fetch_latest_data()
@@ -127,8 +126,11 @@ def trade():
         
         logger.info(f"Model prediction: {prediction} (1=Buy, 0=Sell)")
         
-        # Calculate order quantity based on position size
-        order_qty = max(1, int(POSITION_SIZE * 10))  # Convert position size to shares
+        # Calculate order quantity
+        # Note: POSITION_SIZE is 0.15 by default, meaning 15% of buying power
+        # For simplicity, we use a fixed quantity, but in production this should
+        # calculate based on account buying power and current stock price
+        order_qty = max(1, int(POSITION_SIZE * 10))
         
         # Execute trades based on prediction
         if prediction == 1 and current_position is None:

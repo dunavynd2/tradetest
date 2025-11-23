@@ -21,6 +21,14 @@
         {
           "name": "TRADING_INTERVAL",
           "value": "5"
+        },
+        {
+          "name": "POSITION_SIZE",
+          "value": "0.15"
+        },
+        {
+          "name": "MAX_LOSS",
+          "value": "0.05"
         }
       ],
       "secrets": [
