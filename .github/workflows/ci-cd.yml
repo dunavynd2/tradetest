@@ -1,0 +1,119 @@
+name: Trading Bot CI/CD
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    # Run daily at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Lint with flake8 (optional)
+      run: |
+        pip install flake8
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.git,__pycache__,venv,env
+      continue-on-error: true
+    
+    - name: Run basic validation
+      run: |
+        python -c "import pandas; import xgboost; import sklearn; print('Dependencies OK')"
+
+  build-docker:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Build Docker image
+      run: |
+        docker build -t trading-bot:latest .
+    
+    - name: Test Docker image
+      run: |
+        docker run --rm trading-bot:latest python -c "print('Docker image OK')"
+
+  # Uncomment and configure for cloud deployment
+  # deploy-aws:
+  #   runs-on: ubuntu-latest
+  #   needs: build-docker
+  #   if: github.ref == 'refs/heads/main'
+  #   
+  #   steps:
+  #   - name: Configure AWS credentials
+  #     uses: aws-actions/configure-aws-credentials@v2
+  #     with:
+  #       aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #       aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #       aws-region: us-east-1
+  #   
+  #   - name: Login to Amazon ECR
+  #     id: login-ecr
+  #     uses: aws-actions/amazon-ecr-login@v1
+  #   
+  #   - name: Build, tag, and push image to Amazon ECR
+  #     env:
+  #       ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+  #       ECR_REPOSITORY: trading-bot
+  #       IMAGE_TAG: ${{ github.sha }}
+  #     run: |
+  #       docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+  #       docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+  # deploy-azure:
+  #   runs-on: ubuntu-latest
+  #   needs: build-docker
+  #   if: github.ref == 'refs/heads/main'
+  #   
+  #   steps:
+  #   - name: Login to Azure
+  #     uses: azure/login@v1
+  #     with:
+  #       creds: ${{ secrets.AZURE_CREDENTIALS }}
+  #   
+  #   - name: Build and push to Azure Container Registry
+  #     run: |
+  #       az acr build --registry tradingbotacr --image trading-bot:latest .
+
+  # deploy-gcp:
+  #   runs-on: ubuntu-latest
+  #   needs: build-docker
+  #   if: github.ref == 'refs/heads/main'
+  #   
+  #   steps:
+  #   - name: Authenticate to Google Cloud
+  #     uses: google-github-actions/auth@v1
+  #     with:
+  #       credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+  #   
+  #   - name: Set up Cloud SDK
+  #     uses: google-github-actions/setup-gcloud@v1
+  #   
+  #   - name: Build and push to GCR
+  #     run: |
+  #       gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/trading-bot
