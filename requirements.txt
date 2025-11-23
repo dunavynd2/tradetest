@@ -1,0 +1,11 @@
+pandas>=1.5.0
+xgboost>=1.7.0
+scikit-learn>=1.2.0
+joblib>=1.2.0
+backtrader>=1.9.76
+alpaca-py>=0.8.0
+yfinance>=0.2.0
+schedule>=1.1.0
+python-dotenv>=1.0.0
+flask>=2.3.0
+flask-cors>=4.0.0

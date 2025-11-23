@@ -1,0 +1,54 @@
+{
+  "family": "trading-bot-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "containerDefinitions": [
+    {
+      "name": "trading-bot",
+      "image": "<account-id>.dkr.ecr.us-east-1.amazonaws.com/trading-bot:latest",
+      "essential": true,
+      "environment": [
+        {
+          "name": "ALPACA_PAPER",
+          "value": "true"
+        },
+        {
+          "name": "TRADING_SYMBOL",
+          "value": "AMZN"
+        },
+        {
+          "name": "TRADING_INTERVAL",
+          "value": "5"
+        },
+        {
+          "name": "POSITION_SIZE",
+          "value": "0.15"
+        },
+        {
+          "name": "MAX_LOSS",
+          "value": "0.05"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "ALPACA_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:<account-id>:secret:trading-bot/alpaca-credentials:api_key::"
+        },
+        {
+          "name": "ALPACA_API_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:<account-id>:secret:trading-bot/alpaca-credentials:api_secret::"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/trading-bot",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

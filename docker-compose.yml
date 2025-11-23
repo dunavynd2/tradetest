@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  trading-bot:
+    build: .
+    container_name: trading-bot
+    environment:
+      - ALPACA_API_KEY=${ALPACA_API_KEY}
+      - ALPACA_API_SECRET=${ALPACA_API_SECRET}
+      - ALPACA_PAPER=${ALPACA_PAPER:-true}
+      - TRADING_SYMBOL=${TRADING_SYMBOL:-AMZN}
+      - POSITION_SIZE=${POSITION_SIZE:-0.15}
+      - MAX_LOSS=${MAX_LOSS:-0.05}
+      - TRADING_INTERVAL=${TRADING_INTERVAL:-5}
+    volumes:
+      - ./data:/app/data
+      - ./model:/app/model
+      - ./trading_bot.log:/app/trading_bot.log
+    restart: unless-stopped

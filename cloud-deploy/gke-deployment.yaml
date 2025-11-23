@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trading-bot
+  labels:
+    app: trading-bot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trading-bot
+  template:
+    metadata:
+      labels:
+        app: trading-bot
+    spec:
+      containers:
+      - name: trading-bot
+        image: gcr.io/YOUR_PROJECT_ID/trading-bot:latest
+        imagePullPolicy: Always
+        env:
+        - name: ALPACA_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: alpaca-credentials
+              key: api-key
+        - name: ALPACA_API_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: alpaca-credentials
+              key: api-secret
+        - name: ALPACA_PAPER
+          value: "true"
+        - name: TRADING_SYMBOL
+          value: "AMZN"
+        - name: TRADING_INTERVAL
+          value: "5"
+        - name: POSITION_SIZE
+          value: "0.15"
+        - name: MAX_LOSS
+          value: "0.05"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alpaca-credentials
+type: Opaque
+stringData:
+  api-key: "YOUR_API_KEY"
+  api-secret: "YOUR_API_SECRET"
