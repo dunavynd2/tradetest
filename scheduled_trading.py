@@ -82,6 +82,21 @@ def get_current_position():
         logger.error(f"Error getting position: {e}")
         return None
 
+def check_position_risk(current_position):
+    """Check if current position has exceeded maximum loss threshold."""
+    if not current_position:
+        return False
+    
+    try:
+        unrealized_plpc = float(current_position.unrealized_plpc)
+        if unrealized_plpc < -MAX_LOSS:
+            logger.warning(f"Position loss ({unrealized_plpc:.2%}) exceeds max loss ({-MAX_LOSS:.2%})")
+            return True
+    except Exception as e:
+        logger.error(f"Error checking position risk: {e}")
+    
+    return False
+
 def trade():
     """Execute trading logic based on model predictions."""
     try:
@@ -93,21 +108,34 @@ def trade():
             logger.warning("No data available, skipping this cycle")
             return
         
+        # Get current position
+        current_position = get_current_position()
+        
+        # Check for risk management - close position if loss exceeds threshold
+        if current_position and check_position_risk(current_position):
+            logger.warning(f"Closing position due to excessive loss")
+            try:
+                client.close_position(TRADING_SYMBOL)
+                logger.info(f"Position closed for risk management")
+                return
+            except Exception as e:
+                logger.error(f"Failed to close position: {e}")
+        
         # Prepare features
         features = latest.values.tolist()
         prediction = model.predict([features])[0]
         
         logger.info(f"Model prediction: {prediction} (1=Buy, 0=Sell)")
         
-        # Get current position
-        current_position = get_current_position()
+        # Calculate order quantity based on position size
+        order_qty = max(1, int(POSITION_SIZE * 10))  # Convert position size to shares
         
         # Execute trades based on prediction
         if prediction == 1 and current_position is None:
-            logger.info(f"BUY signal - Submitting buy order for {TRADING_SYMBOL}")
+            logger.info(f"BUY signal - Submitting buy order for {TRADING_SYMBOL}, qty={order_qty}")
             order = MarketOrderRequest(
                 symbol=TRADING_SYMBOL,
-                qty=1,
+                qty=order_qty,
                 side=OrderSide.BUY,
                 time_in_force=TimeInForce.DAY
             )
@@ -115,10 +143,10 @@ def trade():
             logger.info(f"Buy order submitted: {response}")
             
         elif prediction == 0 and current_position is not None:
-            logger.info(f"SELL signal - Submitting sell order for {TRADING_SYMBOL}")
+            logger.info(f"SELL signal - Submitting sell order for {TRADING_SYMBOL}, qty={order_qty}")
             order = MarketOrderRequest(
                 symbol=TRADING_SYMBOL,
-                qty=1,
+                qty=order_qty,
                 side=OrderSide.SELL,
                 time_in_force=TimeInForce.DAY
             )
